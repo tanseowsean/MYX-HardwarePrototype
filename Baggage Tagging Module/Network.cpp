@@ -92,14 +92,42 @@ void Network::firestoreDataUpdate(String tagID){
     convertValue(timeHour, sizeof(timeHour), hour);
     convertValue(timeMin, sizeof(timeMin), min);
 
-    string detectTime = to_string(hour) + ":" + to_string(min);
-    string airportID = "AOR";
+    String strHour;
+    String strMin;
+    
+    if (hour<10)
+    {
+      strHour += "0";
+      strHour += String(hour);
+    }
+    else
+    {
+      strHour += String(hour);
+    }
+
+    if (min<10)
+    {
+      strMin += "0";
+      strMin += String(min);
+    }
+    else
+    {
+      strMin += String(min);
+    }
+
+    cout << endl;
+
+    String detectTime;
+    detectTime += strHour;
+    detectTime += ":";
+    detectTime += strMin;
+    String airportID = "AOR";
 
     content.set("fields/detectTime/stringValue", detectTime);
     content.set("fields/airportID/stringValue", airportID);
     content.set("fields/usage/integerValue", 0);
 
-    if(Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "detectTime,airportID")){
+    if(Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "detectTime,airportID,usage")){
       Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
       return;
     }else{

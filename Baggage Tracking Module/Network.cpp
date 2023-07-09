@@ -78,10 +78,14 @@ void Network::firestoreDataUpdate(String tagID){
   struct tm timeinfo;
 
   if(WiFi.status() == WL_CONNECTED && Firebase.ready() && getLocalTime(&timeinfo)){
-    String documentPath = "tagCheckIn/" + tagID;
+    String documentPath = "trackings/" + tagID;
+    String airportID = "KUL";
+    // String configID = "KUL-ArrivalConfig1";
+    String tpID = "KULBCG";
 
     FirebaseJson content;
 
+    //get current time
     int hour, min;
 
     char timeHour[3];
@@ -92,22 +96,67 @@ void Network::firestoreDataUpdate(String tagID){
     convertValue(timeHour, sizeof(timeHour), hour);
     convertValue(timeMin, sizeof(timeMin), min);
 
-    string detectTime = to_string(hour) + ":" + to_string(min);
-    string airportID = "AOR";
-
-    content.set("fields/detectTime/stringValue", detectTime);
-    content.set("fields/airportID/stringValue", airportID);
-    content.set("fields/usage/integerValue", 0);
-
-    if(Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "detectTime,airportID")){
-      Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
-      return;
-    }else{
-      Serial.println(fbdo.errorReason());
+    String strHour;
+    String strMin;
+    
+    if (hour<10)
+    {
+      strHour += "0";
+      strHour += String(hour);
+    }
+    else
+    {
+      strHour += String(hour);
     }
 
-    if(Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw())){
-      Serial.printf("ok\n\%s\n\n", fbdo.payload().c_str());
+    if (min<10)
+    {
+      strMin += "0";
+      strMin += String(min);
+    }
+    else
+    {
+      strMin += String(min);
+    }
+
+    cout << endl;
+
+    String currTime;
+    currTime += strHour;
+    currTime += ":";
+    currTime += strMin;
+
+    std::vector<struct fb_esp_firestore_document_write_t> writes;
+    struct fb_esp_firestore_document_write_t transform_write;
+    transform_write.type = fb_esp_firestore_document_write_type_transform;
+    transform_write.document_transform.transform_document_path = documentPath.c_str();
+    struct fb_esp_firestore_document_write_field_transforms_t field_transforms;
+    field_transforms.fieldPath = "trackingTime";
+    field_transforms.transform_type = fb_esp_firestore_transform_type_append_missing_elements;
+
+    //update tracking time
+    content.set("values/[0]/stringValue", currTime);
+
+    field_transforms.transform_content = content.raw();
+    transform_write.document_transform.field_transforms.push_back(field_transforms);
+    writes.push_back(transform_write);
+
+    if (Firebase.Firestore.commitDocument(&fbdo, FIREBASE_PROJECT_ID, "", writes, ""))
+    {
+      Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    }
+    else
+    {
+      Serial.println(fbdo.errorReason());
+    }
+    
+    content.clear();
+
+    //update latest point
+    content.set("fields/latestPoint/stringValue", tpID);
+
+    if(Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "latestPoint")){
+      Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
       return;
     }else{
       Serial.println(fbdo.errorReason());
