@@ -80,7 +80,6 @@ void Network::firestoreDataUpdate(String tagID){
   if(WiFi.status() == WL_CONNECTED && Firebase.ready() && getLocalTime(&timeinfo)){
     String documentPath = "trackings/" + tagID;
     String airportID = "KUL";
-    // String configID = "KUL-ArrivalConfig1";
     String tpID = "KULBCG";
 
     FirebaseJson content;
